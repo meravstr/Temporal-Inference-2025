@@ -52,7 +52,7 @@ gamma = 0.983;                                          % <<< UPDATE HERE: your 
 %    3 = First-Differences    (Firdif)
 %    4 = Wiener-Filter        (Wiener)
 %    5 = Lucy-Richardson      (Lucy)
-method = 5;                                             % <<< UPDATE HERE: 1, 2, 3, 4, or 5
+method = 1;                                             % <<< UPDATE HERE: 1, 2, 3, 4, or 5
 
 % 4) METHOD PARAMETER
 %    If you already know the right value for your data, set
