@@ -1,23 +1,26 @@
-function [r_final,r1,beta_0,iter] = dynbin_wstop(y,gamma,lambda,r_initial,err_or_iter)
-% This function infers the rate r from the fluorescence recordings y, 
-% assuming the calcium decays to gamma of its value each time bin if no spikes accrued, 
-% and the penalty for an L1 cost on change in spiking rate is lambda 
+function [r_final,r0,beta_0,iter] = dynbin_wstop(y,gamma,lambda,err_or_iter)
 
-% The function implements the algorithm dynamically binned to calculate r 
-% including calculating beta0 and r at t=1 which is not a rate 
-% but rather an artifact of the matrix notation 
-
-% NOTATIONS: INPUTS y is t x n - time by traces matrix ; 
-% gamma a number between 0 and 1 (typically close to 1); the calcium decay between two measurement points
-% lambda a number, weight penalty of the inferred rate fluctuations
-% r_initial - a T-1xn guess for the solutions to r_final (if empty [] a random guess is used)
-% err_or_iter - number, this parameter defines the stopping criterion. If
-% the number is larger than 1, it is used as the number of iterations to
-% perform. If the number is a fraction, a stopping criterion is defined according to this fraction.
-% In this case, the iterations would stop once the change in the rate on
-% average is smaller than the chosen fraction from the mean magnitude of the rate r (not including its constant shift above zero, if it exists). 
-% If empty, a default of 1000 iterations is used.
-% OUTPUTS r is t-1 x n matrix ; r0 and beta0 the offsets 1 x n vectors
+% This function implements the dynamically binned (dynbin) algorithm. 
+% It infers the spiking rate r from the fluorescence recordings y, 
+% using an iterative algorithm.
+% It assumes the calcium decays by gamma each time bin when no spikes occur, 
+% and that the penalty for an absolute change in the spiking rate is lambda.
+% It retrieves constant spiking rates within dynamically determent time
+% spans.
+% Inputs: 
+% y - fluorescence. t x n, time by trials/pixels matrix ; 
+% gamma - the decay of the calcium during a time bin. A number between 0 and 1 (typically close to 1); 
+% lambda - the penalty weight, a real number. 
+% err_or_iter – a stopping criterion for the iterations. 
+% If it is a number greater than 1, it specifies the number of iterations to run. 
+% If it is a fraction (between 0 and 1), iterations are terminated once the average change in the inferred spiking rate falls below the given fraction from the mean absolute range of r. 
+% If left unspecified, the default is 1000 iterations. 
+% Accepts either a fraction (typically small like 0.01) or a natural number.
+% Outputs:
+% r - the inferred spiking rate from t=2 to t=time. t-1 x n matrix. 
+% r0 - r at t=1, carries no direct biological meaning . A real number.
+% beta0 - the shift between the fluorescence and the spiking rate.
+% iter - the number of iterations run by the algorithm
 
 t = size(y,1);
 n = size(y,2);
@@ -32,35 +35,17 @@ end
 P = eye(t)-1/t*ones(t);
 tildey = P*y;
 A = P*Dinv;
-% largest step size that ensures converges
+% largest step size that ensures convergence
 s = 0.5*((1-gamma)/(1-gamma^t))^2;
 
 % initializing
-if isempty(r_initial)
-    r = rand(size(y));
-else % finding a good r1 to start with, according to the guess r_initial and y
-    r = zeros(size(y));
-    a = A(:,1)'*A(:,1);
-    b = -2*(A(:,1)'*tildey-A(:,1)'*A(:,2:t)*r_initial);
-    c = diag((tildey-A(:,2:t)*r_initial)'*(tildey-A(:,2:t)*r_initial));
-    for j = 1:size(y,2)
-            delta = b(j)^2-4*a*c(j);
-            if delta>0
-                r(1,:) = (-b+sqrt(delta))/(2*a);%(-b(j)+sqrt(delta))/(2*a);
-            else 
-                r(1,j) = y(1,j);
-            end
-    end
-    r(2:end,:) = r_initial;
-end
-
+r = rand(size(y));
 if isempty(err_or_iter)
     err_or_iter = 1000;
 end
 
 if err_or_iter>1
     for i = 1:ceil(err_or_iter)
-        r_old = r;
         Ar = A*r;
         tmAr = (tildey-Ar);
         At_tmAr = A'*tmAr;
@@ -75,8 +60,7 @@ if err_or_iter>1
 else
     i = 1;
     relative_change = zeros(size(y,2),1);
-    test_err = 1; % precentage of error compare to rate magnitude
-                  % running, with stopping according to error or iterations
+    test_err = 1; % percentage of error compared to rate magnitude
     indx = 1:size(y,2);
     to_update = ones(size(y,2),1);
     while test_err > (err_or_iter/2)
@@ -105,10 +89,10 @@ else
     end
 end
     
-    
 r_final = r(2:end,:);
-r1 = r(1,:);
+r0 = r(1,:);
 beta_0 = mean(y-Dinv*r);
 iter = i;
+
 end
 

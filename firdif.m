@@ -1,11 +1,14 @@
 function [r] = firdif(y,gamma,smt)
-% This function estimates the rate r from the fluorescence recordings y.
-% It assumes the calcium decays to gamma of its value each time bin if no
-% spikes accrued. It calculates r_t = c_t - \gamma c_(t-1).
-% The results are then smoothed by smt nearest ponts.
-% NOTATIONS: INPUTS y is t x n - time by traces matrix ; 
-% gamma a number between 0 and 1 (typically close to 1); smt a number
-% OUTPUTS r is t-1 x n matrix ;
+% This function implements the first diffrences method
+% It infers the spiking rate from the fluorescence by calculating r_t = c_t - \gamma c_(t-1).
+% The result is then smoothed by smt nearest points.
+
+% Inputs: 
+% y - fluorescence. t x n, time by trials/pixels matrix ; 
+% gamma - the decay of the calcium during a time bin. A number between 0 and 1 (typically close to 1); 
+% lambda - the penalty weight, a real number. 
+% Outputs:
+% r - the inferred spiking rate from t=2 to t=time. t-1 x n matrix. 
 
 t = size(y,1);
 n = size(y,2);

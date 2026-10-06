@@ -1,15 +1,16 @@
 function [r,r0,beta0] = convar(y,gamma,lambda)
-% This function infers the rate r from the fluorescence recordings y, 
-% assuming the calcium decays to gamma of its value each time bin if no spikes accrued, 
-% and the penalty for a (squared) change in spiking rate is lambda 
-
-% The function uses an analytical solution to calculate r and shift for
-% positivity, including calculating beta0 and r at t=1 which is not a rate 
-% but rather an artifact of this shift and the matrix notation 
-% NOTATIONS: INPUTS y is t x n - time by traces matrix ; 
-% gamma a number between 0 and 1 (typically close to 1) the calcium decay between two measurement points; 
-% lambda a number, weight penalty of the inferred rate fluctuations 
-% OUTPUTS r is t-1 x n matrix ; r0 and beta0 1 x n vectors
+% This function implements the continuously varying (convar) method. 
+% It infers the spiking rate r from the fluorescence recordings y, 
+% assuming calcium decays by gamma each time bin when no spikes occur, 
+% and that the penalty for a (squared) change in the spiking rate is lambda. 
+% Inputs: 
+% y - fluorescence. t x n, time by trials/pixels matrix ; 
+% gamma - the decay of the calcium during a time bin. A number between 0 and 1 (typically close to 1); 
+% lambda - the penalty weight, a real number. 
+% Outputs:
+% r - the inferred spiking rate from t=2 to t=time. t-1 x n matrix. 
+% r0 - r at t=1, carries no direct biological meaning . A real number.
+% beta0 - the shift between the fluorescence and the spiking rate.
 
 t = size(y,1);
 n = size(y,2);
@@ -20,30 +21,22 @@ for i_t = 1:t
     Dinv(i_t,1:i_t) = insert_vec;
     insert_vec = [gamma^i_t, insert_vec];
 end
-
 P = eye(t)-1/t*ones(t);
+
 ytilde = P*y;
 A = P*Dinv;
 L = [zeros(t,1) [zeros(1,t-1); [zeros(1,t-1); [-eye(t-2), zeros(t-2,1)] + [zeros(t-2,1), eye(t-2)]]]];
 Z = L'*L;
-
 multiplies_r = (A'*A+lambda*Z);
 multiplies_r = pinv(multiplies_r);
-r_analytic = multiplies_r*A'*ytilde;
+r_anlytic = multiplies_r*A'*ytilde;
 
-d = -min([r_analytic(2:end,:); zeros(1,n)],[],1);
+d = -min([r_anlytic(2:end,:); zeros(1,n)],[],1);
 rm_ratio = A'*A*ones(t,1)./(A'*A*[1; zeros(t-1,1)]);
 rm = -d*rm_ratio(1);
-r = r_analytic+repmat(d,t,1)+[rm;zeros(t-1,n)];
+r = r_anlytic+repmat(d,t,1)+[rm;zeros(t-1,n)];
 
 beta0 = 1/t*ones(1,t)*(y-Dinv*r);
-
-% internal verification, for example , if needed, all next fuctions should yeild the
-% same number
-% a1 = (y(:,19)-ones(t,1)*beta0(1,19)-Dinv*r_anlytic(:,19))'*(y(:,19)-ones(t,1)*beta0(1,19)-Dinv*r_anlytic(:,19));
-% a2 = (ytilde(:,19)-A*r_anlytic(:,19))'*(ytilde(:,19)-A*r_anlytic(:,19));
-% a3 = (ytilde(:,19)-A*(r_anlytic(:,19)+repmat(d(1,19),t,1)+[r0(1,19);zeros(t-1,1)]))'*(ytilde(:,19)-A*(r_anlytic(:,19)+repmat(d(1,19),t,1)+[r0(1,19);zeros(t-1,1)]));
-% a4 = (ytilde(:,19)-A*r(:,19))'*(ytilde(:,19)-A*r(:,19));
 
 r0 = r(1,:);
 r = r(2:end,:);
