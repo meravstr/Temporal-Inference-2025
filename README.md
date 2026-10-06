@@ -46,18 +46,18 @@ run_inference.m runs these steps in order:
 6.	Plots. All traces with their average, plus one example trial or pixel. When the data was not split for inference, the example also shows the rebuilt calcium over the fluorescence.
 ________________________________________
 Choosing a method
-#	Method	Parameter	Meaning of the parameter	Default search range	Inferred spiking rate from t = (r_idx_start)
-1	Continuously-Varying (Convar), recommended default	lambda	Smoothness penalty; larger is smoother	logspace(-4, 3, 50)	(2)
-2	Dynamically-Binning	lambda	Smoothness penalty; larger is smoother	logspace(-4, 3, 50)	(2)
-3	First-Differences	smt	Smoothing window (samples)	unique(round(logspace(0, 2, 50)))	(2)
-4	Wiener-Filter	k	Related to inverse SNR; larger is smoother	logspace(-3, 4, 50)	(1)
-5	Lucy-Richardson	iter	Number of iterations; fewer is smoother	1:29 (default value: 10)	(1)
+Method	                          Parameter	  Meaning of the parameter	                  Default search range	    Inferred spiking rate from t = (r_idx_start)
+1	Continuously-Varying (Convar),  lambda	    Smoothness penalty; larger is smoother	    logspace(-4, 3, 50)	      (2)
+2	Dynamically-Binning	(Dynbin)    lambda	    Smoothness penalty; larger is smoother	    logspace(-4, 3, 50)	      (2)
+3	First-Differences (Firdif)	    smt	        Smoothing window (samples)	                1-50	                    (2)
+4	Wiener-Filter (Wiener/fft)	    k	          Related to inverse SNR; larger is smoother	logspace(-3, 4, 50)	      (1)
+5	Lucy-Richardson (Lucy/Lucric)	  iter	      Number of iterations; 	                    1-29 (default value: 10)	(1)
 ________________________________________
 Finding gamma
 gamma is the fraction of calcium signal left after one time bin. It depends on both the indicator and your recording rate. Open calcium_decay_finder.m, set your recording rate and indicator, and run it:
 Indicator	Reference gamma	At
 GCaMP6f	0.97	40 Hz
-GCaMP6s	0.95	10 Hz (equivalently 0.983 at 30 Hz)
+GCaMP6s	0.95	10 Hz 
 For any other indicator, choose 'custom' and enter a gamma you know along with the rate it was measured at. The conversion between rates is
 gamma_new = gamma_ref ^ (rate_ref / rate_new)
 ________________________________________
